@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+*.tsbuildinfo
+
+# Local agent workflow state
+.agents/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build outputs
+.next/
+frontend/next-env.d.ts
+out/
+dist/
+build/
+
+# Prisma
+*.db
+*.db-journal
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.pem
+.vercel

@@ -1,0 +1,17 @@
+{
+  "name": "edumanage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EduManage - Student Management System",
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "test": "npm --prefix backend test",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "db:push": "cd backend && npm run db:push",
+    "db:seed": "cd backend && npm run db:seed",
+    "db:studio": "cd backend && npm run db:studio"
+  }
+}

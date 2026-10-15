@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f8fc;
+  --foreground: #17213a;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: #c7d2fe;
+  color: #17213a;
+}
+
+.job-card {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.job-card:hover {
+  border-color: #c7d2fe;
+  box-shadow: 0 18px 38px -30px rgb(39 55 100 / 35%);
+  transform: translateY(-2px);
+}
+
+.logo-violet { background: #f0eafd; color: #7044c7; }
+.logo-blue { background: #e5edff; color: #3964d9; }
+.logo-orange { background: #fff0df; color: #d87524; }
+.logo-green { background: #e0f5e9; color: #22834b; }
+.logo-rose { background: #ffe8ef; color: #cf416a; }
+.logo-cyan { background: #ddf5f5; color: #198589; }
+
+.modal-backdrop {
+  animation: fade-in 140ms ease-out;
+}
+
+.modal-panel {
+  animation: rise-in 180ms ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,415 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum FeeStatus {
+  PAID
+  UNPAID
+  PARTIAL
+  WAIVED
+}
+
+enum ExamType {
+  MIDTERM
+  FINAL
+  QUIZ
+  ASSIGNMENT
+  PRACTICAL
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+// ─────────────────────────────────────────────
+// USER (auth base for all roles)
+// ─────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(STUDENT)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student Student?
+  teacher Teacher?
+  admin   Admin?
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// ADMIN
+// ─────────────────────────────────────────────
+
+model Admin {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  firstName String
+  lastName  String
+  phone     String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admins")
+}
+
+// ─────────────────────────────────────────────
+// TEACHER
+// ─────────────────────────────────────────────
+
+model Teacher {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  employeeId     String   @unique
+  firstName      String
+  lastName       String
+  phone          String?
+  gender         Gender
+  dateOfBirth    DateTime?
+  address        String?
+  avatar         String?
+  qualification  String?
+  specialization String?
+  joiningDate    DateTime @default(now())
+  salary         Decimal? @db.Decimal(10, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects    Subject[]
+  classes     ClassTeacher[]
+  attendance  Attendance[]
+
+  @@map("teachers")
+}
+
+// ─────────────────────────────────────────────
+// STUDENT
+// ─────────────────────────────────────────────
+
+model Student {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  admissionNumber  String   @unique
+  firstName        String
+  lastName         String
+  phone            String?
+  gender           Gender
+  dateOfBirth      DateTime?
+  address          String?
+  avatar           String?
+  parentName       String?
+  parentPhone      String?
+  parentEmail      String?
+  bloodGroup       String?
+  admissionDate    DateTime @default(now())
+  classId          String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class       Class?       @relation(fields: [classId], references: [id])
+  attendance  Attendance[]
+  examResults ExamResult[]
+  fees        Fee[]
+  grades      Grade[]
+
+  @@map("students")
+}
+
+// ─────────────────────────────────────────────
+// CLASS / SECTION
+// ─────────────────────────────────────────────
+
+model Class {
+  id          String   @id @default(cuid())
+  name        String
+  section     String
+  academicYear String
+  capacity    Int      @default(40)
+  roomNumber  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  students    Student[]
+  teachers    ClassTeacher[]
+  subjects    ClassSubject[]
+  exams       Exam[]
+  schedules   Schedule[]
+  attendance  Attendance[]
+
+  @@unique([name, section, academicYear])
+  @@map("classes")
+}
+
+// ─────────────────────────────────────────────
+// CLASS-TEACHER (many-to-many with isClassTeacher flag)
+// ─────────────────────────────────────────────
+
+model ClassTeacher {
+  id             String  @id @default(cuid())
+  classId        String
+  teacherId      String
+  isClassTeacher Boolean @default(false)
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, teacherId])
+  @@map("class_teachers")
+}
+
+// ─────────────────────────────────────────────
+// SUBJECT
+// ─────────────────────────────────────────────
+
+model Subject {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  description String?
+  credits     Int      @default(1)
+  teacherId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teacher      Teacher?       @relation(fields: [teacherId], references: [id])
+  classSubjects ClassSubject[]
+  exams        Exam[]
+  grades       Grade[]
+  schedules    Schedule[]
+
+  @@map("subjects")
+}
+
+// ─────────────────────────────────────────────
+// CLASS-SUBJECT (many-to-many)
+// ─────────────────────────────────────────────
+
+model ClassSubject {
+  id        String @id @default(cuid())
+  classId   String
+  subjectId String
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, subjectId])
+  @@map("class_subjects")
+}
+
+// ─────────────────────────────────────────────
+// SCHEDULE (timetable)
+// ─────────────────────────────────────────────
+
+model Schedule {
+  id        String    @id @default(cuid())
+  classId   String
+  subjectId String
+  day       DayOfWeek
+  startTime String    // "09:00"
+  endTime   String    // "10:00"
+  roomNumber String?
+  createdAt DateTime  @default(now())
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@map("schedules")
+}
+
+// ─────────────────────────────────────────────
+// ATTENDANCE
+// ─────────────────────────────────────────────
+
+model Attendance {
+  id        String           @id @default(cuid())
+  date      DateTime         @db.Date
+  status    AttendanceStatus @default(PRESENT)
+  remarks   String?
+  studentId String
+  classId   String
+  teacherId String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  student Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher Teacher? @relation(fields: [teacherId], references: [id])
+
+  @@unique([studentId, classId, date])
+  @@map("attendance")
+}
+
+// ─────────────────────────────────────────────
+// EXAM
+// ─────────────────────────────────────────────
+
+model Exam {
+  id          String   @id @default(cuid())
+  title       String
+  examType    ExamType
+  subjectId   String
+  classId     String
+  date        DateTime
+  startTime   String?
+  endTime     String?
+  totalMarks  Int      @default(100)
+  passingMarks Int     @default(33)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subject Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class   Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  results ExamResult[]
+
+  @@map("exams")
+}
+
+// ─────────────────────────────────────────────
+// EXAM RESULT
+// ─────────────────────────────────────────────
+
+model ExamResult {
+  id          String   @id @default(cuid())
+  examId      String
+  studentId   String
+  marksObtained Float
+  grade       String?
+  remarks     String?
+  isAbsent    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  exam    Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId])
+  @@map("exam_results")
+}
+
+// ─────────────────────────────────────────────
+// GRADE (subject-level cumulative grade)
+// ─────────────────────────────────────────────
+
+model Grade {
+  id           String   @id @default(cuid())
+  studentId    String
+  subjectId    String
+  academicYear String
+  grade        String
+  gpa          Float?
+  remarks      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId, academicYear])
+  @@map("grades")
+}
+
+// ─────────────────────────────────────────────
+// FEE STRUCTURE
+// ─────────────────────────────────────────────
+
+model FeeStructure {
+  id           String   @id @default(cuid())
+  name         String
+  amount       Decimal  @db.Decimal(10, 2)
+  academicYear String
+  dueDate      DateTime
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  fees Fee[]
+
+  @@map("fee_structures")
+}
+
+// ─────────────────────────────────────────────
+// FEE (student payment record)
+// ─────────────────────────────────────────────
+
+model Fee {
+  id              String    @id @default(cuid())
+  studentId       String
+  feeStructureId  String
+  amountPaid      Decimal   @db.Decimal(10, 2) @default(0)
+  status          FeeStatus @default(UNPAID)
+  paymentDate     DateTime?
+  paymentMethod   String?
+  transactionId   String?
+  remarks         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeStructure FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+
+  @@map("fees")
+}
+
+// ─────────────────────────────────────────────
+// NOTICE / ANNOUNCEMENT
+// ─────────────────────────────────────────────
+
+model Notice {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  targetRole  Role?    // null = all roles
+  publishedAt DateTime @default(now())
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@map("notices")
+}

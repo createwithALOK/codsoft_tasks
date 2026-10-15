@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Next.js and build output
+.next/
+out/
+dist/
+build/
+coverage/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and debug output
+*.log
+npm-debug.log*
+
+# Tooling and operating system
+.DS_Store
+*.tsbuildinfo
+.vscode/
+.idea/

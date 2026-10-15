@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum Role {
+  CUSTOMER
+  KITCHEN
+  ADMIN
+}
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+// ─── Models ─────────────────────────────────────────────────────────────────
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  password     String
+  role         Role          @default(CUSTOMER)
+  createdAt    DateTime      @default(now())
+  reservations Reservation[]
+  orders       Order[]
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  sortOrder   Int        @default(0)
+  menuItems   MenuItem[]
+}
+
+model MenuItem {
+  id              String      @id @default(cuid())
+  categoryId      String
+  category        Category    @relation(fields: [categoryId], references: [id])
+  name            String
+  description     String?
+  price           Decimal
+  imageUrl        String?
+  isAvailable     Boolean     @default(true)
+  isVeg           Boolean     @default(false)
+  spiceLevel      Int         @default(0)
+  preparationTime Int         @default(15)
+  createdAt       DateTime    @default(now())
+  orderItems      OrderItem[]
+}
+
+model Table {
+  id           String        @id @default(cuid())
+  tableNumber  Int           @unique
+  capacity     Int
+  status       TableStatus   @default(AVAILABLE)
+  location     String?
+  reservations Reservation[]
+  orders       Order[]
+}
+
+model Reservation {
+  id              String            @id @default(cuid())
+  userId          String
+  user            User              @relation(fields: [userId], references: [id])
+  tableId         String
+  table           Table             @relation(fields: [tableId], references: [id])
+  date            DateTime
+  timeSlot        String
+  partySize       Int
+  status          ReservationStatus @default(PENDING)
+  specialRequests String?
+  createdAt       DateTime          @default(now())
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  tableId         String?
+  table           Table?        @relation(fields: [tableId], references: [id])
+  orderNumber     String        @unique
+  status          OrderStatus   @default(PLACED)
+  type            OrderType
+  totalAmount     Decimal
+  paymentStatus   PaymentStatus @default(PENDING)
+  deliveryAddress String?
+  createdAt       DateTime      @default(now())
+  orderItems      OrderItem[]
+  payment         Payment?
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id])
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity   Int
+  unitPrice  Decimal
+  notes      String?
+}
+
+model Payment {
+  id                     String   @id @default(cuid())
+  orderId                String   @unique
+  order                  Order    @relation(fields: [orderId], references: [id])
+  stripePaymentIntentId  String   @unique
+  amount                 Decimal
+  currency               String   @default("usd")
+  status                 String
+  createdAt              DateTime @default(now())
+}
